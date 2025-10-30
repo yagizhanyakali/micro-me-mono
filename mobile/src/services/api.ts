@@ -17,6 +17,7 @@ export interface Habit {
   _id: string;
   name: string;
   userId: string;
+  emoji: string;
   createdAt: string;
 }
 
@@ -32,9 +33,9 @@ export interface StreakData {
 }
 
 // Habits
-export const createHabit = async (name: string): Promise<Habit> => {
-  console.log('Creating habit:', name);
-  const response = await api.post('/habits', { name });
+export const createHabit = async (name: string, emoji?: string): Promise<Habit> => {
+  console.log('Creating habit:', name, emoji);
+  const response = await api.post('/habits', { name, emoji });
   console.log('Response:', response.data);
   return response.data;
 };

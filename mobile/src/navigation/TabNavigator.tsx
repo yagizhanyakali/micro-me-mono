@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { TodayScreen } from '../screens/TodayScreen';
 import { StatsScreen } from '../screens/StatsScreen';
-import { Text, View } from 'react-native';
+import { Text, Platform } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 
@@ -20,15 +20,20 @@ export const TabNavigator: React.FC = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#4CAF50',
-        tabBarInactiveTintColor: '#999',
+        tabBarActiveTintColor: '#5DADE2',
+        tabBarInactiveTintColor: '#666',
         tabBarStyle: {
-          height: 60,
-          paddingBottom: 8,
+          height: Platform.OS === 'android' ? 65 : 60,
+          paddingBottom: Platform.OS === 'android' ? 10 : 8,
           paddingTop: 8,
-          backgroundColor: '#fff',
+          backgroundColor: '#1a1a1a',
           borderTopWidth: 1,
-          borderTopColor: '#e0e0e0',
+          borderTopColor: '#2a2a2a',
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.3,
+          shadowRadius: 4,
         },
         tabBarLabelStyle: {
           fontSize: 12,

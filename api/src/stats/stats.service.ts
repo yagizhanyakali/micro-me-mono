@@ -87,6 +87,7 @@ export class StatsService {
     for (const habit of habits) {
       let streak = 0;
       let checkDate = new Date(today);
+      let skippedToday = false;
 
       // Start checking from today going backwards
       while (true) {
@@ -101,15 +102,17 @@ export class StatsService {
           .exec();
 
         if (!entry) {
-          // Allow a grace day if we're checking today and found nothing
-          // (streak can end yesterday)
-          if (checkDateStr === todayStr) {
+          // Allow skipping today (grace day) - user might not have done it yet
+          if (checkDateStr === todayStr && !skippedToday) {
+            skippedToday = true;
             checkDate.setDate(checkDate.getDate() - 1);
             continue;
           }
+          // Streak is broken
           break;
         }
 
+        // Found an entry, increment streak and go to previous day
         streak++;
         checkDate.setDate(checkDate.getDate() - 1);
       }

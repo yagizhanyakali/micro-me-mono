@@ -9,6 +9,9 @@ export class Habit extends Document {
   @Prop({ required: true })
   userId!: string;
 
+  @Prop({ default: '✓' })
+  emoji!: string;
+
   @Prop({ default: Date.now })
   createdAt!: Date;
 }

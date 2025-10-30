@@ -3,13 +3,15 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TextInput,
   TouchableOpacity,
   Alert,
-  RefreshControl,
   ActivityIndicator,
+  Platform,
+  ScrollView,
+  Modal,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import {
   getHabits,
   createHabit,
@@ -25,15 +27,28 @@ const getTodayDate = (): string => {
   return today.toISOString().split('T')[0];
 };
 
+const MAX_HABITS = 4;
+
+const EMOJI_OPTIONS = [
+  '📖', '✏️', '💪', '🏃', '🚶', '🧘', '💧', '🍎', 
+  '🥗', '😴', '🎯', '📱', '💻', '🎨', '🎵', '📚',
+  '🏋️', '🚴', '🏊', '⚽', '🎾', '🏀', '🧠', '❤️',
+];
+
 export const TodayScreen: React.FC = () => {
+  const navigation = useNavigation();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completedHabits, setCompletedHabits] = useState<Set<string>>(new Set());
-  const [habitName, setHabitName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [newHabitName, setNewHabitName] = useState('');
+  const [selectedEmoji, setSelectedEmoji] = useState('✓');
 
   const loadData = async () => {
     try {
+      setLoading(true);
       const [habitsData, todayEntries] = await Promise.all([
         getHabits(),
         getTodayEntries(),
@@ -43,6 +58,8 @@ export const TodayScreen: React.FC = () => {
     } catch (error) {
       Alert.alert('Error', 'Failed to load habits. Please try again.');
       console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -50,27 +67,27 @@ export const TodayScreen: React.FC = () => {
     loadData();
   }, []);
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  }, []);
+  // Refresh data when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation?.addListener?.('focus', () => {
+      loadData();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const handleAddHabit = async () => {
-    if (!habitName.trim()) {
+    if (!newHabitName.trim()) {
       Alert.alert('Error', 'Please enter a habit name');
-      return;
-    }
-
-    if (habits.length >= 4) {
-      Alert.alert('Limit Reached', 'You can only have 4 habits at a time');
       return;
     }
 
     setLoading(true);
     try {
-      await createHabit(habitName.trim());
-      setHabitName('');
+      await createHabit(newHabitName.trim(), selectedEmoji);
+      setNewHabitName('');
+      setSelectedEmoji('✓');
+      setModalVisible(false);
+      setEditingIndex(null);
       await loadData();
     } catch (error: any) {
       Alert.alert(
@@ -82,22 +99,16 @@ export const TodayScreen: React.FC = () => {
     }
   };
 
-  const handleDeleteHabit = async (id: string, name: string) => {
-    Alert.alert('Delete Habit', `Are you sure you want to delete "${name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteHabit(id);
-            await loadData();
-          } catch (error) {
-            Alert.alert('Error', 'Failed to delete habit');
-          }
-        },
-      },
-    ]);
+  const handleDeleteHabit = async (id: string) => {
+    setLoading(true);
+    try {
+      await deleteHabit(id);
+      await loadData();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete habit');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleToggleHabit = async (habitId: string) => {
@@ -122,89 +133,176 @@ export const TodayScreen: React.FC = () => {
     }
   };
 
-  const renderHabitItem = ({ item }: { item: Habit }) => {
-    const isCompleted = completedHabits.has(item._id);
+  const openAddHabitModal = (index: number) => {
+    setEditingIndex(index);
+    setSelectedEmoji(EMOJI_OPTIONS[index % EMOJI_OPTIONS.length]);
+    setModalVisible(true);
+  };
+
+  const renderHabitSlot = (index: number) => {
+    const habit = habits[index];
+    const isCompleted = habit ? completedHabits.has(habit._id) : false;
+
+    if (habit) {
+      return (
+        <View key={index} style={styles.habitSlot}>
+          <Text style={styles.habitLabel}>Habit {index + 1}</Text>
+          <TouchableOpacity
+            style={[
+              styles.habitCard,
+              isCompleted && styles.habitCardCompleted,
+            ]}
+            onPress={() => handleToggleHabit(habit._id)}
+            onLongPress={() => {
+              Alert.alert('Delete Habit', `Delete "${habit.name}"?`, [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: () => handleDeleteHabit(habit._id),
+                },
+              ]);
+            }}
+          >
+            <Text style={[styles.habitText, isCompleted && styles.habitTextCompleted]}>
+              {habit.name}
+            </Text>
+            <View style={styles.habitIconContainer}>
+              <Text style={styles.habitIcon}>
+                {isCompleted ? '✓' : (habit.emoji || '✓')}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      );
+    }
 
     return (
-      <View style={styles.habitItem}>
+      <View key={index} style={styles.habitSlot}>
+        <Text style={styles.habitLabel}>Habit {index + 1}</Text>
         <TouchableOpacity
-          style={[styles.checkbox, isCompleted && styles.checkboxCompleted]}
-          onPress={() => handleToggleHabit(item._id)}
+          style={styles.habitCardEmpty}
+          onPress={() => openAddHabitModal(index)}
         >
-          {isCompleted && <Text style={styles.checkmark}>✓</Text>}
-        </TouchableOpacity>
-        <Text style={[styles.habitName, isCompleted && styles.habitNameCompleted]}>
-          {item.name}
-        </Text>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteHabit(item._id, item.name)}
-        >
-          <Text style={styles.deleteButtonText}>×</Text>
+          <Text style={styles.habitTextEmpty}>Add a new habit</Text>
+          <View style={styles.habitIconContainer}>
+            <Text style={styles.addIcon}>⊕</Text>
+          </View>
         </TouchableOpacity>
       </View>
     );
   };
 
-  const canAddHabit = habits.length < 4;
+  if (loading && habits.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#5DADE2" />
+        <Text style={styles.loadingText}>Loading habits...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Today's Habits</Text>
-      <Text style={styles.date}>{new Date().toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })}</Text>
-
-      <FlatList
-        data={habits}
-        renderItem={renderHabitItem}
-        keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            No habits yet. Add your first habit below!
-          </Text>
-        }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      />
-
-      {canAddHabit && (
-        <View style={styles.addContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter habit name"
-            value={habitName}
-            onChangeText={setHabitName}
-            maxLength={100}
-            returnKeyType="done"
-            onSubmitEditing={handleAddHabit}
-          />
-          <TouchableOpacity
-            style={[styles.addButton, loading && styles.addButtonDisabled]}
-            onPress={handleAddHabit}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.addButtonText}>Add</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {!canAddHabit && (
-        <View style={styles.limitMessage}>
-          <Text style={styles.limitMessageText}>
-            Maximum of 4 habits reached
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Set Your Habits</Text>
+          <Text style={styles.subtitle}>
+            Define up to four daily habits to track.
           </Text>
         </View>
-      )}
+
+        <View style={styles.progressSection}>
+          <Text style={styles.progressText}>
+            {completedHabits.size} of {habits.length} completed today
+          </Text>
+          <View style={styles.progressBarBg}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: habits.length > 0 ? `${(completedHabits.size / habits.length) * 100}%` : '0%' },
+              ]}
+            />
+          </View>
+        </View>
+
+        <View style={styles.habitsContainer}>
+          {[0, 1, 2, 3].map((index) => renderHabitSlot(index))}
+        </View>
+      </ScrollView>
+
+      {/* Add Habit Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add New Habit</Text>
+            
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter habit name"
+              placeholderTextColor="#999"
+              value={newHabitName}
+              onChangeText={setNewHabitName}
+              maxLength={100}
+              autoFocus
+            />
+
+            <Text style={styles.emojiSectionTitle}>Select an Emoji</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.emojiScroll}
+              contentContainerStyle={styles.emojiScrollContent}
+            >
+              {EMOJI_OPTIONS.map((emoji, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.emojiOption,
+                    selectedEmoji === emoji && styles.emojiOptionSelected,
+                  ]}
+                  onPress={() => setSelectedEmoji(emoji)}
+                >
+                  <Text style={styles.emojiText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButtonCancel}
+                onPress={() => {
+                  setModalVisible(false);
+                  setNewHabitName('');
+                  setSelectedEmoji('✓');
+                  setEditingIndex(null);
+                }}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalButtonSave,
+                  loading && styles.modalButtonDisabled,
+                ]}
+                onPress={handleAddHabit}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalButtonTextSave}>Add</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -212,123 +310,219 @@ export const TodayScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#1a1a1a',
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#999',
+    fontSize: 16,
+  },
+  scrollContent: {
     padding: 20,
+    paddingBottom: Platform.OS === 'android' ? 30 : 20,
+  },
+  header: {
+    marginBottom: 32,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  date: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 20,
-  },
-  listContainer: {
-    flexGrow: 1,
-  },
-  habitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  checkbox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  checkboxCompleted: {
-    backgroundColor: '#4CAF50',
-  },
-  checkmark: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
   },
-  habitName: {
-    flex: 1,
+  subtitle: {
     fontSize: 16,
-    color: '#333',
-  },
-  habitNameCompleted: {
-    textDecorationLine: 'line-through',
     color: '#999',
-  },
-  deleteButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#ff4444',
-    borderRadius: 16,
-  },
-  deleteButtonText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
+    textAlign: 'center',
     lineHeight: 24,
   },
-  emptyText: {
-    textAlign: 'center',
-    color: '#999',
-    fontSize: 16,
-    marginTop: 40,
+  progressSection: {
+    marginBottom: 32,
   },
-  addContainer: {
+  progressText: {
+    fontSize: 14,
+    color: '#fff',
+    marginBottom: 12,
+    fontWeight: '600',
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: '#333',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#FFA726',
+    borderRadius: 4,
+  },
+  habitsContainer: {
+    gap: 24,
+  },
+  habitSlot: {
+    gap: 8,
+  },
+  habitLabel: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  habitCard: {
     flexDirection: 'row',
-    marginTop: 20,
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#2a2a2a',
+    borderWidth: 2,
+    borderColor: '#3a3a3a',
     borderRadius: 12,
-    padding: 15,
+    padding: 18,
+    minHeight: 68,
+  },
+  habitCardCompleted: {
+    backgroundColor: '#1e4d2b',
+    borderColor: '#4CAF50',
+  },
+  habitCardEmpty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#2a2a2a',
+    borderWidth: 2,
+    borderColor: '#3a3a3a',
+    borderRadius: 12,
+    padding: 18,
+    minHeight: 68,
+    borderStyle: 'dashed',
+  },
+  habitText: {
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    color: '#fff',
+    fontWeight: '500',
+    flex: 1,
   },
-  addButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
-    paddingHorizontal: 25,
+  habitTextCompleted: {
+    color: '#4CAF50',
+  },
+  habitTextEmpty: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '400',
+    flex: 1,
+  },
+  habitIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 167, 38, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 80,
+    marginLeft: 12,
   },
-  addButtonDisabled: {
-    backgroundColor: '#ccc',
+  habitIcon: {
+    fontSize: 20,
   },
-  addButtonText: {
+  addIcon: {
+    fontSize: 24,
+    color: '#666',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalInput: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 2,
+    borderColor: '#3a3a3a',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#fff',
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButtonCancel: {
+    flex: 1,
+    backgroundColor: '#3a3a3a',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalButtonTextCancel: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  limitMessage: {
-    backgroundColor: '#fff3cd',
-    padding: 15,
+  modalButtonSave: {
+    flex: 1,
+    backgroundColor: '#5DADE2',
     borderRadius: 12,
-    marginTop: 20,
+    padding: 16,
+    alignItems: 'center',
   },
-  limitMessageText: {
-    color: '#856404',
-    textAlign: 'center',
+  modalButtonDisabled: {
+    backgroundColor: '#3a3a3a',
+  },
+  modalButtonTextSave: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emojiSectionTitle: {
     fontSize: 14,
+    color: '#999',
+    marginBottom: 12,
+    fontWeight: '600',
+  },
+  emojiScroll: {
+    marginBottom: 20,
+  },
+  emojiScrollContent: {
+    gap: 8,
+    paddingRight: 8,
+  },
+  emojiOption: {
+    width: 50,
+    height: 50,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#3a3a3a',
+  },
+  emojiOptionSelected: {
+    borderColor: '#5DADE2',
+    backgroundColor: 'rgba(93, 173, 226, 0.15)',
+  },
+  emojiText: {
+    fontSize: 24,
   },
 });
 
