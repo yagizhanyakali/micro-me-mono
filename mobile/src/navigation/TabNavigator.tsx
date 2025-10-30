@@ -23,8 +23,6 @@ export const TabNavigator: React.FC = () => {
         tabBarActiveTintColor: '#5DADE2',
         tabBarInactiveTintColor: '#666',
         tabBarStyle: {
-          height: Platform.OS === 'android' ? 65 : 60,
-          paddingBottom: Platform.OS === 'android' ? 10 : 8,
           paddingTop: 8,
           backgroundColor: '#1a1a1a',
           borderTopWidth: 1,
@@ -45,7 +43,7 @@ export const TabNavigator: React.FC = () => {
         name="Today"
         component={TodayScreen}
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="✓" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="🏠" />,
         }}
       />
       <Tab.Screen

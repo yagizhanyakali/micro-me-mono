@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -29,12 +30,6 @@ const getTodayDate = (): string => {
 
 const MAX_HABITS = 4;
 
-const EMOJI_OPTIONS = [
-  '📖', '✏️', '💪', '🏃', '🚶', '🧘', '💧', '🍎', 
-  '🥗', '😴', '🎯', '📱', '💻', '🎨', '🎵', '📚',
-  '🏋️', '🚴', '🏊', '⚽', '🎾', '🏀', '🧠', '❤️',
-];
-
 export const TodayScreen: React.FC = () => {
   const navigation = useNavigation();
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -44,7 +39,7 @@ export const TodayScreen: React.FC = () => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
-  const [selectedEmoji, setSelectedEmoji] = useState('✓');
+  const [selectedEmoji, setSelectedEmoji] = useState('');
 
   const loadData = async () => {
     try {
@@ -62,6 +57,12 @@ export const TodayScreen: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -83,9 +84,9 @@ export const TodayScreen: React.FC = () => {
 
     setLoading(true);
     try {
-      await createHabit(newHabitName.trim(), selectedEmoji);
+      await createHabit(newHabitName.trim(), selectedEmoji || undefined);
       setNewHabitName('');
-      setSelectedEmoji('✓');
+      setSelectedEmoji('');
       setModalVisible(false);
       setEditingIndex(null);
       await loadData();
@@ -135,7 +136,7 @@ export const TodayScreen: React.FC = () => {
 
   const openAddHabitModal = (index: number) => {
     setEditingIndex(index);
-    setSelectedEmoji(EMOJI_OPTIONS[index % EMOJI_OPTIONS.length]);
+    setSelectedEmoji('');
     setModalVisible(true);
   };
 
@@ -204,7 +205,17 @@ export const TodayScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#5DADE2"
+            colors={["#5DADE2"]}
+          />
+        }
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Set Your Habits</Text>
           <Text style={styles.subtitle}>
@@ -252,26 +263,18 @@ export const TodayScreen: React.FC = () => {
               autoFocus
             />
 
-            <Text style={styles.emojiSectionTitle}>Select an Emoji</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.emojiScroll}
-              contentContainerStyle={styles.emojiScrollContent}
-            >
-              {EMOJI_OPTIONS.map((emoji, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.emojiOption,
-                    selectedEmoji === emoji && styles.emojiOptionSelected,
-                  ]}
-                  onPress={() => setSelectedEmoji(emoji)}
-                >
-                  <Text style={styles.emojiText}>{emoji}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <Text style={styles.emojiSectionTitle}>Choose an Emoji (optional)</Text>
+            <TextInput
+              style={styles.emojiInput}
+              placeholder="Tap to select"
+              placeholderTextColor="#666"
+              value={selectedEmoji}
+              onChangeText={(text) => {
+                // Only keep the first emoji (properly handle multi-byte emojis)
+                const firstEmoji = Array.from(text)[0] || '';
+                setSelectedEmoji(firstEmoji);
+              }}
+            />
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -279,7 +282,7 @@ export const TodayScreen: React.FC = () => {
                 onPress={() => {
                   setModalVisible(false);
                   setNewHabitName('');
-                  setSelectedEmoji('✓');
+                  setSelectedEmoji('');
                   setEditingIndex(null);
                 }}
               >
@@ -500,29 +503,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontWeight: '600',
   },
-  emojiScroll: {
-    marginBottom: 20,
-  },
-  emojiScrollContent: {
-    gap: 8,
-    paddingRight: 8,
-  },
-  emojiOption: {
-    width: 50,
-    height: 50,
+  emojiInput: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
     borderWidth: 2,
     borderColor: '#3a3a3a',
-  },
-  emojiOptionSelected: {
-    borderColor: '#5DADE2',
-    backgroundColor: 'rgba(93, 173, 226, 0.15)',
-  },
-  emojiText: {
-    fontSize: 24,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 32,
+    color: '#fff',
+    marginBottom: 20,
+    textAlign: 'center',
+    minHeight: 68,
   },
 });
 

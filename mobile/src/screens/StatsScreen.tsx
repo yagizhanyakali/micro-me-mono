@@ -236,7 +236,12 @@ export const StatsScreen: React.FC = () => {
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#5DADE2"
+          colors={["#5DADE2"]}
+        />
       }
     >
       <Text style={styles.title}>Statistics</Text>
