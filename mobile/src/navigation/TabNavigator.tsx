@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { TodayScreen } from '../screens/TodayScreen';
 import { StatsScreen } from '../screens/StatsScreen';
-import { Text, Platform } from 'react-native';
+import { Text } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 

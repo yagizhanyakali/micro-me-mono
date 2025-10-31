@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
 @Schema()
-export class Habit extends Document {
+export class Habit extends Document<string> {
   @Prop({ required: true })
   name!: string;
 

@@ -28,15 +28,12 @@ const getTodayDate = (): string => {
   return today.toISOString().split('T')[0];
 };
 
-const MAX_HABITS = 4;
-
 export const TodayScreen: React.FC = () => {
   const navigation = useNavigation();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completedHabits, setCompletedHabits] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('');
@@ -48,6 +45,7 @@ export const TodayScreen: React.FC = () => {
         getHabits(),
         getTodayEntries(),
       ]);
+
       setHabits(habitsData);
       setCompletedHabits(new Set(todayEntries));
     } catch (error) {
@@ -88,7 +86,6 @@ export const TodayScreen: React.FC = () => {
       setNewHabitName('');
       setSelectedEmoji('');
       setModalVisible(false);
-      setEditingIndex(null);
       await loadData();
     } catch (error: any) {
       Alert.alert(
@@ -134,8 +131,7 @@ export const TodayScreen: React.FC = () => {
     }
   };
 
-  const openAddHabitModal = (index: number) => {
-    setEditingIndex(index);
+  const openAddHabitModal = () => {
     setSelectedEmoji('');
     setModalVisible(true);
   };
@@ -183,7 +179,7 @@ export const TodayScreen: React.FC = () => {
         <Text style={styles.habitLabel}>Habit {index + 1}</Text>
         <TouchableOpacity
           style={styles.habitCardEmpty}
-          onPress={() => openAddHabitModal(index)}
+          onPress={() => openAddHabitModal()}
         >
           <Text style={styles.habitTextEmpty}>Add a new habit</Text>
           <View style={styles.habitIconContainer}>
@@ -283,7 +279,6 @@ export const TodayScreen: React.FC = () => {
                   setModalVisible(false);
                   setNewHabitName('');
                   setSelectedEmoji('');
-                  setEditingIndex(null);
                 }}
               >
                 <Text style={styles.modalButtonTextCancel}>Cancel</Text>

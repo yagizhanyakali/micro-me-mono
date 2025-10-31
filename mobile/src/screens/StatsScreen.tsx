@@ -9,11 +9,10 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { getHeatmap, getStreaks, HeatmapData, StreakData } from '../services/api';
 
 export const StatsScreen: React.FC = () => {
-  const navigation = useNavigation();
   const [heatmapData, setHeatmapData] = useState<HeatmapData[]>([]);
   const [streaksData, setStreaksData] = useState<StreakData[]>([]);
   const [loading, setLoading] = useState(true);

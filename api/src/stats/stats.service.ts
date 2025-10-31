@@ -4,12 +4,12 @@ import { Model, Types } from 'mongoose';
 import { Entry } from '../schemas/entry.schema';
 import { Habit } from '../schemas/habit.schema';
 
-interface HeatmapData {
+export interface HeatmapData {
   date: string;
   count: number;
 }
 
-interface StreakData {
+export interface StreakData {
   habitId: string;
   name: string;
   streak: number;
@@ -77,7 +77,7 @@ export class StatsService {
 
   async getStreaks(userId: string): Promise<StreakData[]> {
     // Get all habits for the user
-    const habits = await this.habitModel.find({ userId }).exec();
+    const habits = await this.habitModel.find<Habit>({ userId }).exec();
 
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
@@ -86,7 +86,7 @@ export class StatsService {
 
     for (const habit of habits) {
       let streak = 0;
-      let checkDate = new Date(today);
+      const checkDate = new Date(today);
       let skippedToday = false;
 
       // Start checking from today going backwards

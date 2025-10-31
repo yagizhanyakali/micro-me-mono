@@ -27,10 +27,7 @@ export class EntriesService {
   constructor(@InjectModel(Entry.name) private entryModel: Model<Entry>) {}
 
   async create(createEntryDto: CreateEntryDto, userId: string): Promise<Entry> {
-    // Validate habitId is a valid ObjectId
-    if (!Types.ObjectId.isValid(createEntryDto.habitId)) {
-      throw new BadRequestException('Invalid habit ID');
-    }
+    this.validateObjectId(createEntryDto.habitId);
 
     try {
       const entry = new this.entryModel({
@@ -52,10 +49,7 @@ export class EntriesService {
   }
 
   async remove(deleteEntryDto: DeleteEntryDto, userId: string): Promise<void> {
-    // Validate habitId is a valid ObjectId
-    if (!Types.ObjectId.isValid(deleteEntryDto.habitId)) {
-      throw new BadRequestException('Invalid habit ID');
-    }
+    this.validateObjectId(deleteEntryDto.habitId);
 
     const result = await this.entryModel
       .deleteOne({
@@ -79,6 +73,12 @@ export class EntriesService {
       .exec();
 
     return entries.map((entry) => entry.habitId.toString());
+  }
+
+  private validateObjectId(id: string): void {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid ObjectId');
+    }
   }
 }
 
