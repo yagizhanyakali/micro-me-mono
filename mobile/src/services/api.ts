@@ -1,10 +1,11 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Update this URL based on your development environment
 // For iOS simulator: http://localhost:3000
 // For Android emulator: http://10.0.2.2:3000
 // For physical device: http://YOUR_COMPUTER_IP:3000
-const API_BASE_URL = 'https://micro-me-mono.onrender.com/api';
+const API_BASE_URL = 'http://localhost:3000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,6 +13,20 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Add authentication token to all requests
+api.interceptors.request.use(
+  async (config) => {
+    const token = await AsyncStorage.getItem('userToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 export interface Habit {
   _id: string;

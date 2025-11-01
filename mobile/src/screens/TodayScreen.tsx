@@ -217,6 +217,7 @@ export const TodayScreen: React.FC = () => {
           <Text style={styles.subtitle}>
             Define up to four daily habits to track.
           </Text>
+          <Text style={styles.todayDate}>{getTodayDate()}</Text>
         </View>
 
         <View style={styles.progressSection}>
@@ -340,6 +341,12 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
     lineHeight: 24,
+  },
+  todayDate: {
+    fontSize: 32,
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 12,
   },
   progressSection: {
     marginBottom: 32,

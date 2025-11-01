@@ -2,7 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar, StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { TabNavigator } from '../navigation/TabNavigator';
+import { AuthProvider } from '../context/AuthContext';
+import { RootNavigator } from '../navigation/RootNavigator';
 import 'react-native-gesture-handler';
 
 export const App = () => {
@@ -13,9 +14,11 @@ export const App = () => {
           barStyle="light-content" 
           backgroundColor="#1a1a1a"
         />
-        <NavigationContainer>
-          <TabNavigator />
-        </NavigationContainer>
+        <AuthProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </AuthProvider>
       </SafeAreaView>
     </SafeAreaProvider>
   );

@@ -8,15 +8,18 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { getHeatmap, getStreaks, HeatmapData, StreakData } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export const StatsScreen: React.FC = () => {
   const [heatmapData, setHeatmapData] = useState<HeatmapData[]>([]);
   const [streaksData, setStreaksData] = useState<StreakData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { logout, user } = useAuth();
 
   const loadData = async () => {
     try {
@@ -230,6 +233,27 @@ export const StatsScreen: React.FC = () => {
     );
   }
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -243,7 +267,20 @@ export const StatsScreen: React.FC = () => {
         />
       }
     >
-      <Text style={styles.title}>Statistics</Text>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Statistics</Text>
+          {user && (
+            <Text style={styles.userEmail}>{user.email}</Text>
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+        >
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
 
       {renderStreaks()}
       {renderHeatmap()}
@@ -266,11 +303,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1a1a1a',
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 20,
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: '#999',
+  },
+  logoutButton: {
+    backgroundColor: '#2a2a2a',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
+  },
+  logoutButtonText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    fontWeight: '600',
   },
   loadingText: {
     marginTop: 10,

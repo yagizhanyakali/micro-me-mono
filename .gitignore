@@ -112,6 +112,10 @@ yarn-error.log
 # testing
 /coverage
 
+#firebase
+mobile/ios/Mobile/GoogleService-Info.plist
+mobile/android/app/google-services.json
+
 
 test-output
 .env

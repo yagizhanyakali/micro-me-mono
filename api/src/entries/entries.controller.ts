@@ -6,37 +6,43 @@ import {
   Body,
   UsePipes,
   ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { EntriesService } from './entries.service';
 import { CreateEntryDto } from '../dto/create-entry.dto';
 import { DeleteEntryDto } from '../dto/delete-entry.dto';
 import { Entry } from '../schemas/entry.schema';
-
-// For simplicity, we're using a hardcoded user ID
-const DEMO_USER_ID = 'demo-user-1';
+import { FirebaseAuthGuard } from '../auth/auth.guard';
+import { User } from '../auth/user.decorator';
+import type { AuthUser } from '../auth/user.decorator';
 
 @Controller('entries')
+@UseGuards(FirebaseAuthGuard)
 export class EntriesController {
   constructor(private readonly entriesService: EntriesService) {}
 
   @Post()
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-  async create(@Body() createEntryDto: CreateEntryDto): Promise<Entry> {
-    return this.entriesService.create(createEntryDto, DEMO_USER_ID);
+  async create(
+    @Body() createEntryDto: CreateEntryDto,
+    @User() user: AuthUser
+  ): Promise<Entry> {
+    return this.entriesService.create(createEntryDto, user.uid);
   }
 
   @Delete()
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async remove(
-    @Body() deleteEntryDto: DeleteEntryDto
+    @Body() deleteEntryDto: DeleteEntryDto,
+    @User() user: AuthUser
   ): Promise<{ message: string }> {
-    await this.entriesService.remove(deleteEntryDto, DEMO_USER_ID);
+    await this.entriesService.remove(deleteEntryDto, user.uid);
     return { message: 'Entry deleted successfully' };
   }
 
   @Get('today')
-  async getTodayEntries(): Promise<string[]> {
-    return this.entriesService.getTodayEntries(DEMO_USER_ID);
+  async getTodayEntries(@User() user: AuthUser): Promise<string[]> {
+    return this.entriesService.getTodayEntries(user.uid);
   }
 }
 
