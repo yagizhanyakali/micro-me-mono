@@ -5,7 +5,7 @@ import { User } from '../schemas/user.schema';
 import { Habit } from '../schemas/habit.schema';
 import { Entry } from '../schemas/entry.schema';
 import * as admin from 'firebase-admin';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class NotificationsService {
@@ -134,7 +134,7 @@ export class NotificationsService {
    * Check for users with incomplete habits and send notifications
    * Runs every day at 8 PM
    */
-  @Cron(CronExpression.EVERY_MINUTE, {
+  @Cron('0 20 * * *', {
     timeZone: 'UTC',
   })
   async checkIncompleteHabitsAndNotify(): Promise<void> {

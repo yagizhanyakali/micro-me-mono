@@ -4,7 +4,12 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const API_BASE_URL = 'https://micro-me-mono.onrender.com/api';
+// Update this URL based on your development environment
+// For iOS simulator: http://localhost:3000/api
+// For Android emulator: http://10.0.2.2:3000/api
+// For physical device: http://YOUR_COMPUTER_IP:3000/api
+// For production: https://micro-me-mono.onrender.com/api
+const API_BASE_URL = 'http://10.0.2.2:3000/api';
 
 /**
  * Request notification permissions from the user
