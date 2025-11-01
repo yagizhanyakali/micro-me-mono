@@ -11,6 +11,10 @@ import {
 import { auth } from '../config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { 
+  initializeNotifications, 
+  unregisterFCMToken 
+} from '../services/notifications';
 
 interface AuthContextType {
   user: User | null;
@@ -56,6 +60,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (user) {
         const token = await user.getIdToken();
         await AsyncStorage.setItem('userToken', token);
+        
+        // Initialize notifications for logged-in user
+        await initializeNotifications();
       } else {
         await AsyncStorage.removeItem('userToken');
       }
@@ -101,6 +108,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Unregister FCM token before logout
+      await unregisterFCMToken();
+      
       // Sign out from Google if signed in
       try {
         await GoogleSignin.signOut();

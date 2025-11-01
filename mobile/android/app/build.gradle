@@ -78,13 +78,16 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.yny.microme"
+    namespace "com.mobile"
     defaultConfig {
         applicationId "com.yny.microme"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+    }
+    buildFeatures {
+        buildConfig = true
     }
     signingConfigs {
         debug {

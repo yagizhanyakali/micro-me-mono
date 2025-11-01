@@ -1,11 +1,12 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth } from '../config/firebase';
 
 // Update this URL based on your development environment
 // For iOS simulator: http://localhost:3000
 // For Android emulator: http://10.0.2.2:3000
 // For physical device: http://YOUR_COMPUTER_IP:3000
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://10.0.2.2:3000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -13,6 +14,22 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Helper function to refresh token
+const refreshToken = async (): Promise<string | null> => {
+  try {
+    const user = auth.currentUser;
+    if (user) {
+      const newToken = await user.getIdToken(true); // Force refresh
+      await AsyncStorage.setItem('userToken', newToken);
+      return newToken;
+    }
+    return null;
+  } catch (error) {
+    console.error('Token refresh failed:', error);
+    return null;
+  }
+};
 
 // Add authentication token to all requests
 api.interceptors.request.use(
@@ -24,6 +41,37 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Handle token expiration in responses
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Check if error is due to expired token
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      error.response?.data?.code === 'auth/id-token-expired'
+    ) {
+      originalRequest._retry = true;
+
+      // Try to refresh the token
+      const newToken = await refreshToken();
+      
+      if (newToken) {
+        // Retry the original request with new token
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } else {
+        // Token refresh failed, user needs to login again
+        await AsyncStorage.removeItem('userToken');
+      }
+    }
+
     return Promise.reject(error);
   }
 );

@@ -16,6 +16,9 @@ end
 
 target 'Mobile' do
   config = use_native_modules!
+  
+  # Required for Firebase pods to work with static libraries
+  use_modular_headers!
 
   use_react_native!(
     :path => config[:reactNativePath],
