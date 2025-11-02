@@ -6,7 +6,7 @@ import { auth } from '../config/firebase';
 // For iOS simulator: http://localhost:3000
 // For Android emulator: http://10.0.2.2:3000
 // For physical device: http://YOUR_COMPUTER_IP:3000
-const API_BASE_URL = 'https://micro-me-mono.onrender.com/api';
+const API_BASE_URL = 'https://micro-me-api-309753964138.europe-west1.run.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

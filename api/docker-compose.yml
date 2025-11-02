@@ -7,14 +7,13 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    env_file:
+      - .env  # Load environment variables from .env file
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - MONGODB_URI=mongodb://mongo:27017/micro-me
-      # Add other environment variables as needed:
-      # - FIREBASE_PROJECT_ID=your-project-id
-      # - FIREBASE_CLIENT_EMAIL=your-client-email
-      # - FIREBASE_PRIVATE_KEY=your-private-key
+      - MONGODB_URI=mongodb://mongo:27017/habit-tracker
+      # FIREBASE_SERVICE_ACCOUNT will be loaded from .env file
     depends_on:
       - mongo
     restart: unless-stopped

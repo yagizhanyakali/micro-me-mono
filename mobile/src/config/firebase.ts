@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD_JhscpKJP2-WPJ_rjphbDnSf3ssWt32w",
@@ -14,8 +15,34 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
+// Create a custom persistence using AsyncStorage for React Native
+const customPersistence = {
+  type: 'LOCAL' as const,
+  async _get(key: string) {
+    const value = await AsyncStorage.getItem(key);
+    return value ? JSON.parse(value) : null;
+  },
+  async _set(key: string, value: unknown) {
+    await AsyncStorage.setItem(key, JSON.stringify(value));
+  },
+  async _remove(key: string) {
+    await AsyncStorage.removeItem(key);
+  },
+  _isAvailable: async () => true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _addListener: (_callback: () => void) => {
+    // Not implemented for AsyncStorage
+  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _removeListener: (_callback: () => void) => {
+    // Not implemented for AsyncStorage
+  },
+};
+
+// Initialize Firebase Authentication with custom AsyncStorage persistence
+export const auth = initializeAuth(app, {
+  persistence: customPersistence,
+});
 
 export default app;
 
