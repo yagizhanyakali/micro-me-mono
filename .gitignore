@@ -116,6 +116,9 @@ yarn-error.log
 mobile/ios/Mobile/GoogleService-Info.plist
 mobile/android/app/google-services.json
 
+#gradle properties
+mobile/android/gradle.properties
+
 
 test-output
 .env
