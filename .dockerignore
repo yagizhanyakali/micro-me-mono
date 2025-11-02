@@ -1,11 +1,14 @@
 # Dependencies
 node_modules
+**/node_modules
 npm-debug.log
 yarn-error.log
 
 # Build output
 dist
+**/dist
 build
+**/build
 *.map
 
 # Testing
@@ -13,6 +16,8 @@ coverage
 .nyc_output
 **/*.spec.ts
 **/*.test.ts
+**/test/
+**/tests/
 
 # IDE
 .idea
@@ -33,6 +38,7 @@ Thumbs.db
 # Docker
 Dockerfile
 .dockerignore
+docker-compose.yml
 
 # Documentation
 *.md
@@ -46,4 +52,12 @@ README*
 # Logs
 logs
 *.log
+
+# Mobile app
+mobile/
+api-e2e/
+packages/
+
+# Nx cache
+.nx/
 

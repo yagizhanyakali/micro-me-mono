@@ -3,19 +3,22 @@ FROM node:20-alpine AS builder
 
 WORKDIR /workspace
 
-# Copy workspace root files needed for Nx
+# Copy package files and workspace configuration
 COPY package*.json ./
 COPY nx.json ./
-COPY tsconfig.base.json ./
+COPY tsconfig*.json ./
 
-# Copy API source code and configuration
-COPY api ./api
+# Copy only the API source code and configuration
+COPY api/ ./api/
 
 # Install dependencies (including dev dependencies for build)
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
-# Build the API application
-RUN npx nx build api --configuration=production
+# Sync Nx workspace to fix TypeScript project references
+RUN NX_DAEMON=false npx nx sync
+
+# Build the API application (disable Nx daemon for Docker)
+RUN NX_DAEMON=false npx nx build api --configuration=production
 
 # Production stage
 FROM node:20-alpine AS production
@@ -26,7 +29,7 @@ WORKDIR /app
 COPY --from=builder /workspace/api/dist ./
 
 # Install production dependencies only (using the pruned package.json from dist)
-RUN npm ci --omit=dev --ignore-scripts
+RUN npm install --omit=dev --ignore-scripts --legacy-peer-deps
 
 # Create a non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
