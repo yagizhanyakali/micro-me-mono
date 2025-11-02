@@ -24,5 +24,8 @@
     "react-native-screens": "^4.18.0",
     "react-native-svg": "*",
     "react-native-worklets": "^0.5.2"
+  },
+  "devDependencies": {
+    "react-native-dotenv": "^3.4.11"
   }
 }
